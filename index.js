@@ -35,10 +35,11 @@ async function run() {
       res.send(result);
     });
 
-// 
-    app.post('/api/organizations', async (req, res) => {
+    //
+    app.post("/api/organizations", async (req, res) => {
       console.log(req.body);
-      const { organizationName, logo, website, description, organizerEmail } = req.body;
+      const { organizationName, logo, website, description, organizerEmail } =
+        req.body;
 
       const addData = {
         organizationName,
@@ -47,7 +48,7 @@ async function run() {
         description,
         organizerEmail,
         createdAt: new Date(),
-        status: 'active',
+        status: "active",
       };
 
       const result = await organizationCollection.insertOne(addData);
@@ -56,9 +57,36 @@ async function run() {
       res.send(result);
     });
 
-
-
     // 
+
+    app.patch('/api/organizations/:id', async (req, res) => {
+      // console.log(req.body);
+      const { id } = req.params;
+      const { organizationName, logo, website, description, organizerEmail } = req.body;
+      console.log(organizationName, logo, website, description, organizerEmail, id);
+
+      const updateData = {
+        organizationName,
+        logo,
+        website,
+        description,
+        organizerEmail,
+      };
+
+      const result = await organizationCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+            ...updateData,
+          },
+        }
+      );
+      // console.log(result);
+
+      res.send(result);
+    });
+
+    //
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
