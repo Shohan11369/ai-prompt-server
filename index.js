@@ -35,6 +35,31 @@ async function run() {
       res.send(result);
     });
 
+// 
+    app.post('/api/organizations', async (req, res) => {
+      console.log(req.body);
+      const { organizationName, logo, website, description, organizerEmail } = req.body;
+
+      const addData = {
+        organizationName,
+        logo,
+        website,
+        description,
+        organizerEmail,
+        createdAt: new Date(),
+        status: 'active',
+      };
+
+      const result = await organizationCollection.insertOne(addData);
+      // console.log(result);
+
+      res.send(result);
+    });
+
+
+
+    // 
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
