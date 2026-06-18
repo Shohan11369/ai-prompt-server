@@ -98,6 +98,14 @@ async function run() {
     });
 
 
+     app.get('/api/single-events/:id', async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+      const result = await eventsCollection.findOne(query);
+      res.send(result);
+    });
+
+
     // 
     app.get('/api/events/:email', async (req, res) => {
       const { email } = req.params;
@@ -134,6 +142,25 @@ async function run() {
 
       const cursor = eventsCollection.find(query);
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+
+    app.get('/api/events/booking/:email', async (req, res) => {
+      const { email } = req.params;
+
+      const result = await bookingCollection.find({ attendeeEmail: email }).toArray();
+
+      res.send(result);
+    });
+
+
+    
+
+
+     app.delete('/api/events/:id', async (req, res) => {
+      const { id } = req.params;
+      const result = await eventsCollection.deleteOne({ _id: new ObjectId(id) });
       res.send(result);
     });
 
