@@ -20,6 +20,9 @@ const client = new MongoClient(uri, {
 });
 async function run() {
   try {
+    await client.connect();
+    console.log("🧩 Connected successfully to MongoDB!");
+
     const db = client.db("AiPromptDB");
     const organizationCollection = db.collection("organizations");
     const eventsCollection = db.collection("events");
@@ -57,13 +60,21 @@ async function run() {
       res.send(result);
     });
 
-    // 
+    //
 
-    app.patch('/api/organizations/:id', async (req, res) => {
+    app.patch("/api/organizations/:id", async (req, res) => {
       // console.log(req.body);
       const { id } = req.params;
-      const { organizationName, logo, website, description, organizerEmail } = req.body;
-      console.log(organizationName, logo, website, description, organizerEmail, id);
+      const { organizationName, logo, website, description, organizerEmail } =
+        req.body;
+      console.log(
+        organizationName,
+        logo,
+        website,
+        description,
+        organizerEmail,
+        id,
+      );
 
       const updateData = {
         organizationName,
@@ -79,10 +90,50 @@ async function run() {
           $set: {
             ...updateData,
           },
-        }
+        },
       );
       // console.log(result);
 
+      res.send(result);
+    });
+
+
+    // 
+    app.get('/api/events/:email', async (req, res) => {
+      const { email } = req.params;
+      // console.log(email);
+
+      const result = await eventsCollection.find({ organizationEmail: email }).toArray();
+      res.send(result);
+    });
+
+
+    // 
+
+     app.get('/api/events', async (req, res) => {
+      const search = req.query.search;
+      const category = req.query.category;
+      const location = req.query.location;
+      const query = {}; // {title: "mern"}
+      if (search) {
+        query.title = {
+          $regex: search,
+          $options: 'i', // upper lower matter korbe na
+        };
+      }
+      if (category) {
+        // query.category = category;
+        // ?category=Music,Tech,Digial
+        // console.log(category, category.split(',')); ["Music", "Tech", "Digital"]
+
+        query.category = { $in: category.split(',') };
+      }
+      if (location) {
+        query.location = location;
+      }
+
+      const cursor = eventsCollection.find(query);
+      const result = await cursor.toArray();
       res.send(result);
     });
 
