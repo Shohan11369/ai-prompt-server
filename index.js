@@ -4,7 +4,7 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 dotenv.config();
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
@@ -18,6 +18,7 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
 async function run() {
   try {
     await client.connect();
@@ -30,6 +31,79 @@ async function run() {
     const bookingCollection = db.collection("bookings");
     const paymentCollection = db.collection("payments");
 
+   
+
+  
+    app.get("/api/user/attendee-stats/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+
+      
+        const user = await usersCollection.findOne({ email });
+
+      
+        const stats = await bookingCollection.aggregate([
+          { $match: { attendeeEmail: email } },
+          {
+            $group: {
+              _id: null,
+              totalSpent: { $sum: { $toDouble: "$amount" } }, 
+              ticketsBooked: { $sum: { $toInt: "$quantity" } }, 
+              upcomingEvents: { $sum: 1 } 
+            }
+          }
+        ]).toArray();
+
+       
+        const finalStats = stats[0] || { totalSpent: 0, ticketsBooked: 0, upcomingEvents: 0 };
+
+        res.status(200).send({
+          user: user || { name: "", avatar: "", bio: "" },
+          stats: {
+            totalSpent: finalStats.totalSpent,
+            ticketsBooked: finalStats.ticketsBooked,
+            upcomingEvents: finalStats.upcomingEvents
+          }
+        });
+
+      } catch (error) {
+        console.error("Error in attendee-stats API:", error);
+        res.status(500).send({ message: "Internal Server Error", error: error.message });
+      }
+    });
+
+
+    app.put("/api/user/update-profile/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const { name, avatar, bio } = req.body;
+
+        const filter = { email: email };
+        const updateDoc = {
+          $set: {
+            name: name,
+            avatar: avatar,
+            bio: bio,
+            updatedAt: new Date()
+          }
+        };
+
+   
+        const result = await usersCollection.updateOne(filter, updateDoc, { upsert: true });
+
+        res.status(200).send({
+          success: true,
+          message: "Profile updated successfully!",
+          result
+        });
+
+      } catch (error) {
+        console.error("Error updating user profile:", error);
+        res.status(500).send({ message: "Internal Server Error", error: error.message });
+      }
+    });
+
+    
     app.get("/api/organization/:email", async (req, res) => {
       const { email } = req.params;
       const result = await organizationCollection.findOne({
@@ -38,11 +112,9 @@ async function run() {
       res.send(result);
     });
 
-    //
     app.post("/api/organizations", async (req, res) => {
       console.log(req.body);
-      const { organizationName, logo, website, description, organizerEmail } =
-        req.body;
+      const { organizationName, logo, website, description, organizerEmail } = req.body;
 
       const addData = {
         organizationName,
@@ -55,26 +127,12 @@ async function run() {
       };
 
       const result = await organizationCollection.insertOne(addData);
-      // console.log(result);
-
       res.send(result);
     });
 
-    //
-
     app.patch("/api/organizations/:id", async (req, res) => {
-      // console.log(req.body);
       const { id } = req.params;
-      const { organizationName, logo, website, description, organizerEmail } =
-        req.body;
-      console.log(
-        organizationName,
-        logo,
-        website,
-        description,
-        organizerEmail,
-        id,
-      );
+      const { organizationName, logo, website, description, organizerEmail } = req.body;
 
       const updateData = {
         organizationName,
@@ -86,14 +144,8 @@ async function run() {
 
       const result = await organizationCollection.updateOne(
         { _id: new ObjectId(id) },
-        {
-          $set: {
-            ...updateData,
-          },
-        },
+        { $set: { ...updateData } }
       );
-      // console.log(result);
-
       res.send(result);
     });
 
@@ -104,16 +156,13 @@ async function run() {
       res.send(result);
     });
 
-    
     app.get("/api/events/featured", async (req, res) => {
       try {
-        
         const result = await eventsCollection
           .find({})
           .sort({ rating: -1 })
-          .limit(3) 
+          .limit(3)
           .toArray();
-
         res.send(result);
       } catch (error) {
         console.error("Error fetching featured tools:", error);
@@ -121,35 +170,23 @@ async function run() {
       }
     });
 
-    //
     app.get("/api/events/:email", async (req, res) => {
       const { email } = req.params;
-      // console.log(email);
-
       const result = await eventsCollection
         .find({ organizationEmail: email })
         .toArray();
       res.send(result);
     });
 
-    //
-
     app.get("/api/events", async (req, res) => {
       const search = req.query.search;
       const category = req.query.category;
       const location = req.query.location;
-      const query = {}; // {title: "mern"}
+      const query = {};
       if (search) {
-        query.title = {
-          $regex: search,
-          $options: "i", // upper lower matter korbe na
-        };
+        query.title = { $regex: search, $options: "i" };
       }
       if (category) {
-        // query.category = category;
-        // ?category=Music,Tech,Digial
-        // console.log(category, category.split(',')); ["Music", "Tech", "Digital"]
-
         query.category = { $in: category.split(",") };
       }
       if (location) {
@@ -161,7 +198,6 @@ async function run() {
       res.send(result);
     });
 
-    //
     app.post("/api/events/booking", async (req, res) => {
       const {
         amount,
@@ -173,7 +209,7 @@ async function run() {
         transactionId,
         paymentStatus,
       } = req.body;
-      // console.log(req.body);
+
       const bookingData = {
         evetId,
         eventTitle,
@@ -184,6 +220,7 @@ async function run() {
         paymentStatus,
         bookingDate: new Date(),
       };
+      
       const isBookingExist = await bookingCollection.findOne({ transactionId });
       if (isBookingExist) {
         return res.status(200).send({ message: "Already paid" });
@@ -192,12 +229,9 @@ async function run() {
 
       await eventsCollection.updateOne(
         { _id: new ObjectId(evetId) },
-        {
-          $inc: {
-            capacity: -quantity,
-          },
-        },
+        { $inc: { capacity: -quantity } }
       );
+      
       const paymentData = {
         userEmail: email,
         amount,
@@ -211,17 +245,14 @@ async function run() {
       res.send(bookingRes);
     });
 
-    //
     app.post("/api/events", async (req, res) => {
       const data = req.body;
-      // console.log(data);
       const organizer = await usersCollection.findOne({
         email: data?.organizationEmail,
       });
       const organizerEventsCounts = await eventsCollection.countDocuments({
         organizationEmail: data?.organizationEmail,
       });
-      // console.log(organizerEventsCounts);
 
       if (!organizer?.isPremium && organizerEventsCounts >= 3) {
         return res.status(401).send({
@@ -232,45 +263,26 @@ async function run() {
         ...data,
         status: "pending",
       });
-      // console.log(result);
-
       res.send(result);
     });
-
-    //
 
     app.get("/api/events/booking/:email", async (req, res) => {
       const { email } = req.params;
-
       const result = await bookingCollection
         .find({ attendeeEmail: email })
         .toArray();
-
       res.send(result);
     });
-
-    //
 
     app.patch("/api/events/:id", async (req, res) => {
-      // console.log(req.body);
       const { id } = req.params;
-
       const updateData = req.body;
-
       const result = await eventsCollection.updateOne(
         { _id: new ObjectId(id) },
-        {
-          $set: {
-            ...updateData,
-          },
-        },
+        { $set: { ...updateData } }
       );
-      // console.log(result);
-
       res.send(result);
     });
-
-    //
 
     app.delete("/api/events/:id", async (req, res) => {
       const { id } = req.params;
@@ -280,19 +292,13 @@ async function run() {
       res.send(result);
     });
 
-    //
-
     app.patch("/api/users/upgrade-premium/:email", async (req, res) => {
       const { email } = req.params;
       const { amount, transactionId, paymentStatus, paymentType } = req.body;
 
       const result = await usersCollection.updateOne(
         { email },
-        {
-          $set: {
-            isPremium: true,
-          },
-        },
+        { $set: { isPremium: true } }
       );
       const paymentData = {
         userEmail: email,
@@ -304,26 +310,20 @@ async function run() {
       };
 
       await paymentCollection.insertOne(paymentData);
-
       res.send(result);
     });
 
     app.get("/api/payment/:email", async (req, res) => {
       const { email } = req.params;
-      console.log(email);
-
       const result = await paymentCollection
         .find({ userEmail: email })
         .toArray();
       res.send(result);
     });
 
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
-    );
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    // keeping client connection open
   }
 }
 run().catch(console.dir);
