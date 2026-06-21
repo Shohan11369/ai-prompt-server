@@ -31,47 +31,47 @@ async function run() {
     const bookingCollection = db.collection("bookings");
     const paymentCollection = db.collection("payments");
 
-   
-
-  
     app.get("/api/user/attendee-stats/:email", async (req, res) => {
       try {
         const { email } = req.params;
 
-      
         const user = await usersCollection.findOne({ email });
 
-      
-        const stats = await bookingCollection.aggregate([
-          { $match: { attendeeEmail: email } },
-          {
-            $group: {
-              _id: null,
-              totalSpent: { $sum: { $toDouble: "$amount" } }, 
-              ticketsBooked: { $sum: { $toInt: "$quantity" } }, 
-              upcomingEvents: { $sum: 1 } 
-            }
-          }
-        ]).toArray();
+        const stats = await bookingCollection
+          .aggregate([
+            { $match: { attendeeEmail: email } },
+            {
+              $group: {
+                _id: null,
+                totalSpent: { $sum: { $toDouble: "$amount" } },
+                ticketsBooked: { $sum: { $toInt: "$quantity" } },
+                upcomingEvents: { $sum: 1 },
+              },
+            },
+          ])
+          .toArray();
 
-       
-        const finalStats = stats[0] || { totalSpent: 0, ticketsBooked: 0, upcomingEvents: 0 };
+        const finalStats = stats[0] || {
+          totalSpent: 0,
+          ticketsBooked: 0,
+          upcomingEvents: 0,
+        };
 
         res.status(200).send({
           user: user || { name: "", avatar: "", bio: "" },
           stats: {
             totalSpent: finalStats.totalSpent,
             ticketsBooked: finalStats.ticketsBooked,
-            upcomingEvents: finalStats.upcomingEvents
-          }
+            upcomingEvents: finalStats.upcomingEvents,
+          },
         });
-
       } catch (error) {
         console.error("Error in attendee-stats API:", error);
-        res.status(500).send({ message: "Internal Server Error", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Internal Server Error", error: error.message });
       }
     });
-
 
     app.put("/api/user/update-profile/:email", async (req, res) => {
       try {
@@ -84,26 +84,27 @@ async function run() {
             name: name,
             avatar: avatar,
             bio: bio,
-            updatedAt: new Date()
-          }
+            updatedAt: new Date(),
+          },
         };
 
-   
-        const result = await usersCollection.updateOne(filter, updateDoc, { upsert: true });
+        const result = await usersCollection.updateOne(filter, updateDoc, {
+          upsert: true,
+        });
 
         res.status(200).send({
           success: true,
           message: "Profile updated successfully!",
-          result
+          result,
         });
-
       } catch (error) {
         console.error("Error updating user profile:", error);
-        res.status(500).send({ message: "Internal Server Error", error: error.message });
+        res
+          .status(500)
+          .send({ message: "Internal Server Error", error: error.message });
       }
     });
 
-    
     app.get("/api/organization/:email", async (req, res) => {
       const { email } = req.params;
       const result = await organizationCollection.findOne({
@@ -114,7 +115,8 @@ async function run() {
 
     app.post("/api/organizations", async (req, res) => {
       console.log(req.body);
-      const { organizationName, logo, website, description, organizerEmail } = req.body;
+      const { organizationName, logo, website, description, organizerEmail } =
+        req.body;
 
       const addData = {
         organizationName,
@@ -132,7 +134,8 @@ async function run() {
 
     app.patch("/api/organizations/:id", async (req, res) => {
       const { id } = req.params;
-      const { organizationName, logo, website, description, organizerEmail } = req.body;
+      const { organizationName, logo, website, description, organizerEmail } =
+        req.body;
 
       const updateData = {
         organizationName,
@@ -144,7 +147,7 @@ async function run() {
 
       const result = await organizationCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $set: { ...updateData } }
+        { $set: { ...updateData } },
       );
       res.send(result);
     });
@@ -220,7 +223,7 @@ async function run() {
         paymentStatus,
         bookingDate: new Date(),
       };
-      
+
       const isBookingExist = await bookingCollection.findOne({ transactionId });
       if (isBookingExist) {
         return res.status(200).send({ message: "Already paid" });
@@ -229,9 +232,9 @@ async function run() {
 
       await eventsCollection.updateOne(
         { _id: new ObjectId(evetId) },
-        { $inc: { capacity: -quantity } }
+        { $inc: { capacity: -quantity } },
       );
-      
+
       const paymentData = {
         userEmail: email,
         amount,
@@ -266,6 +269,26 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/api/admin/enrollments/:id/status", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { status } = req.body; 
+
+        const result = await bookingCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { approvalStatus: status } },
+        );
+
+        if (result.modifiedCount === 0) {
+          return res.status(404).send({ message: "Booking not found" });
+        }
+
+        res.send({ success: true, result });
+      } catch (error) {
+        res.status(500).send({ message: "Server error", error: error.message });
+      }
+    });
+
     app.get("/api/events/booking/:email", async (req, res) => {
       const { email } = req.params;
       const result = await bookingCollection
@@ -279,7 +302,7 @@ async function run() {
       const updateData = req.body;
       const result = await eventsCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $set: { ...updateData } }
+        { $set: { ...updateData } },
       );
       res.send(result);
     });
@@ -298,7 +321,7 @@ async function run() {
 
       const result = await usersCollection.updateOne(
         { email },
-        { $set: { isPremium: true } }
+        { $set: { isPremium: true } },
       );
       const paymentData = {
         userEmail: email,
@@ -321,9 +344,11 @@ async function run() {
       res.send(result);
     });
 
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!",
+    );
   } finally {
-    // keeping client connection open
+  
   }
 }
 run().catch(console.dir);
