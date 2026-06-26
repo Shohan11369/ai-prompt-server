@@ -349,56 +349,104 @@ async function run() {
       res.send(result);
     });
 
+    // EMAIL LOGIN
     app.post("/api/auth/sign-in/email", async (req, res) => {
       try {
-        const { email } = req.body;
+        const { email, name, image } = req.body;
+
         if (!email) {
-          return res.status(400).send({ message: "Email is required" });
+          return res.status(400).send({
+            success: false,
+            message: "Email is required",
+          });
         }
 
-        // Find user, if not found, create (upsert)
         let user = await usersCollection.findOne({ email });
-        if (!user) {
-          await usersCollection.insertOne({ email, createdAt: new Date() });
-          user = await usersCollection.findOne({ email });
-        }
 
-        res.status(200).send({ success: true, user });
-      } catch (error) {
-        res.status(500).send({ message: "Server error", error: error.message });
-      }
-    });
-
-    app.post("/api/auth/sign-in/social", async (req, res) => {
-      console.log("Request Body:", req.body);
-      try {
-        const { email, name, avatar } = req.body;
-        if (!email) {
-          return res.status(400).send({ message: "Email is required" });
-        }
-
-        // Find user, if not found, create (upsert)
-        let user = await usersCollection.findOne({ email });
         if (!user) {
           await usersCollection.insertOne({
             email,
-            name,
-            avatar,
+            name: name || "",
+            avatar: image || "",
+            createdAt: new Date(),
+            isSocial: false,
+          });
+
+          user = await usersCollection.findOne({ email });
+        }
+
+        res.send({
+          success: true,
+          user,
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
+      }
+    });
+
+    // GOOGLE LOGIN
+    app.post("/api/auth/sign-in/social", async (req, res) => {
+      try {
+        const { email, name, image } = req.body;
+
+        console.log(req.body);
+
+        if (!email) {
+          return res.status(400).send({
+            success: false,
+            message: "Google email required",
+          });
+        }
+
+        let user = await usersCollection.findOne({
+          email,
+        });
+
+        if (!user) {
+          await usersCollection.insertOne({
+            email,
+            name: name || "",
+            avatar: image || "",
             createdAt: new Date(),
             isSocial: true,
           });
-          user = await usersCollection.findOne({ email });
+
+          user = await usersCollection.findOne({
+            email,
+          });
         } else {
-          // Optionally update user info if they exist
           await usersCollection.updateOne(
-            { email },
-            { $set: { name, avatar } },
+            {
+              email,
+            },
+            {
+              $set: {
+                name,
+                avatar: image,
+                lastLogin: new Date(),
+              },
+            },
           );
+
+          user = await usersCollection.findOne({
+            email,
+          });
         }
 
-        res.status(200).send({ success: true, user });
+        res.send({
+          success: true,
+          user,
+        });
       } catch (error) {
-        res.status(500).send({ message: "Server error", error: error.message });
+        console.log(error);
+
+        res.status(500).send({
+          success: false,
+          message: error.message,
+        });
       }
     });
 
