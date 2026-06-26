@@ -172,7 +172,7 @@ async function run() {
         const result = await eventsCollection
           .find({})
           .sort({ rating: -1 })
-          .limit(3)
+          .limit(6)
           .toArray();
         res.send(result);
       } catch (error) {
