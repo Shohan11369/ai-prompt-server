@@ -27,7 +27,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    console.log("🧩 Connected successfully to MongoDB!");
+    console.log(" Connected successfully to MongoDB!");
 
     const db = client.db("AiPromptDB");
     const organizationCollection = db.collection("organizations");
@@ -380,17 +380,20 @@ async function run() {
         // Find user, if not found, create (upsert)
         let user = await usersCollection.findOne({ email });
         if (!user) {
-          await usersCollection.insertOne({ 
-            email, 
-            name, 
-            avatar, 
+          await usersCollection.insertOne({
+            email,
+            name,
+            avatar,
             createdAt: new Date(),
-            isSocial: true 
+            isSocial: true,
           });
           user = await usersCollection.findOne({ email });
         } else {
           // Optionally update user info if they exist
-          await usersCollection.updateOne({ email }, { $set: { name, avatar } });
+          await usersCollection.updateOne(
+            { email },
+            { $set: { name, avatar } },
+          );
         }
 
         res.status(200).send({ success: true, user });
