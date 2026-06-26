@@ -6,7 +6,10 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({
+  origin: ["https://ai-prompt-client-amber.vercel.app"], // আপনার ফ্রন্টএন্ডের URL
+  credentials: true,
+}));
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
