@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { auth } = require("./auth");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
@@ -13,6 +14,11 @@ app.use(
   }),
 );
 app.use(express.json());
+
+// FIX for 404 error: Route all auth requests to better-auth
+app.all("/api/auth/*", (req, res) => {
+  return auth.handler(req, res);
+});
 
 const uri = process.env.MONGODB_URI;
 
