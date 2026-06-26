@@ -397,7 +397,7 @@ async function run() {
         if (!email) {
           return res.status(400).send({
             success: false,
-            message: "Google email required",
+            message: "Google email requiredd",
           });
         }
 
