@@ -7,8 +7,11 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 app.use(
-  cors({
-    origin: ["https://ai-prompt-client-six.vercel.app"],
+cors({
+    origin: [
+      "http://localhost:3000",
+      "https://ai-prompt-client-six.vercel.app"
+    ],
     credentials: true,
   }),
 );
