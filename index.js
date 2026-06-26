@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 
 app.use(cors({
-  origin: ["https://ai-prompt-client-amber.vercel.app"], 
+  origin: ["https://ai-prompt-client-zeta.vercel.app"], 
   credentials: true,
 }));
 app.use(express.json());
