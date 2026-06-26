@@ -369,6 +369,38 @@ async function run() {
       }
     });
 
+    app.post("/api/auth/sign-in/social", async (req, res) => {
+      try {
+        const { email, name, avatar } = req.body;
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+
+        // Find user, if not found, create (upsert)
+        let user = await usersCollection.findOne({ email });
+        if (!user) {
+          await usersCollection.insertOne({
+            email,
+            name,
+            avatar,
+            createdAt: new Date(),
+            isSocial: true,
+          });
+          user = await usersCollection.findOne({ email });
+        } else {
+          // Optionally update user info if they exist
+          await usersCollection.updateOne(
+            { email },
+            { $set: { name, avatar } },
+          );
+        }
+
+        res.status(200).send({ success: true, user });
+      } catch (error) {
+        res.status(500).send({ message: "Server error", error: error.message });
+      }
+    });
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
