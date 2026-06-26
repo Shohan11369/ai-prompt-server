@@ -4,14 +4,14 @@ const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 dotenv.config();
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
-
-
-app.use(cors({
-  origin: ["https://ai-prompt-client-zeta.vercel.app"], 
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: ["https://ai-prompt-client-zeta.vercel.app"],
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 const uri = process.env.MONGODB_URI;
@@ -277,7 +277,7 @@ async function run() {
     app.patch("/api/admin/enrollments/:id/status", async (req, res) => {
       try {
         const { id } = req.params;
-        const { status } = req.body; 
+        const { status } = req.body;
 
         const result = await bookingCollection.updateOne(
           { _id: new ObjectId(id) },
@@ -373,7 +373,6 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
   } finally {
-  
   }
 }
 run().catch(console.dir);
