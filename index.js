@@ -5,25 +5,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
-const { betterAuth } = require("better-auth");
-const { mongodbAdapter } = require("better-auth/adapters/mongodb");
 
-// MongoDB client অলরেডি আপনার কোডে আছে, সেটিই ব্যবহার করবেন
-const auth = betterAuth({
-  database: mongodbAdapter(db, {
-    client,
-  }),
-  emailAndPassword: {
-    enabled: true,
-  },
-  // আপনার ফ্রন্টএন্ড থেকে আসা রিকোয়েস্ট পারমিশন দিন
-  trustedOrigins: ["https://ai-prompt-client-amber.vercel.app"],
-});
 
-// এবার Better Auth-এর রুটগুলো Express-এর সাথে কানেক্ট করুন
-app.all("/api/auth/*", (req, res) => {
-  return auth.handler(req, res);
-});
 
 app.use(cors({
   origin: ["https://ai-prompt-client-amber.vercel.app"], 
