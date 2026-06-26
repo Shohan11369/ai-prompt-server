@@ -2,7 +2,6 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-const { auth } = require("./auth");
 dotenv.config();
 const app = express();
 const port = process.env.PORT || 8000;
@@ -14,11 +13,6 @@ app.use(
   }),
 );
 app.use(express.json());
-
-// FIX for 404 error: Route all auth requests to better-auth
-app.all("/api/auth/*", (req, res) => {
-  return auth.handler(req, res);
-});
 
 const uri = process.env.MONGODB_URI;
 
@@ -353,6 +347,59 @@ async function run() {
         .find({ userEmail: email })
         .toArray();
       res.send(result);
+    });
+
+    app.post("/api/auth/sign-in/email", async (req, res) => {
+      try {
+        const { email } = req.body;
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+
+        // Find user, if not found, create (upsert)
+        let user = await usersCollection.findOne({ email });
+        if (!user) {
+          await usersCollection.insertOne({ email, createdAt: new Date() });
+          user = await usersCollection.findOne({ email });
+        }
+
+        res.status(200).send({ success: true, user });
+      } catch (error) {
+        res.status(500).send({ message: "Server error", error: error.message });
+      }
+    });
+
+    app.post("/api/auth/sign-in/social", async (req, res) => {
+      console.log("Request Body:", req.body);
+      try {
+        const { email, name, avatar } = req.body;
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+
+        // Find user, if not found, create (upsert)
+        let user = await usersCollection.findOne({ email });
+        if (!user) {
+          await usersCollection.insertOne({
+            email,
+            name,
+            avatar,
+            createdAt: new Date(),
+            isSocial: true,
+          });
+          user = await usersCollection.findOne({ email });
+        } else {
+          // Optionally update user info if they exist
+          await usersCollection.updateOne(
+            { email },
+            { $set: { name, avatar } },
+          );
+        }
+
+        res.status(200).send({ success: true, user });
+      } catch (error) {
+        res.status(500).send({ message: "Server error", error: error.message });
+      }
     });
 
     console.log(
